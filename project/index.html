@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QM Bug Ticket 智能分析系统 Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="activity-bar" aria-label="主导航">
+        <button class="activity-item active" title="工作台" aria-label="工作台">
+          <span class="icon-grid"></span>
+        </button>
+        <button class="activity-item" title="数据源" aria-label="数据源">
+          <span class="icon-source"></span>
+        </button>
+        <button class="activity-item" title="报告" aria-label="报告">
+          <span class="icon-report"></span>
+        </button>
+        <button class="activity-item bottom" title="设置" aria-label="设置">
+          <span class="icon-gear"></span>
+        </button>
+      </aside>
+
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <p class="eyebrow">Workspace</p>
+          <h1>Bug Agent</h1>
+        </div>
+
+        <section class="panel-block">
+          <div class="section-title">
+            <span>QM Bug Queue</span>
+            <span class="count">3</span>
+          </div>
+          <div class="ticket-list" id="ticketList"></div>
+        </section>
+
+        <section class="panel-block">
+          <div class="section-title">
+            <span>Data Sources</span>
+            <span class="status-dot live"></span>
+          </div>
+          <div class="source-list">
+            <div class="source-row">
+              <span class="source-icon jira">J</span>
+              <div>
+                <strong>Jira Bug Ticket</strong>
+                <small>issue, comments, priority</small>
+              </div>
+              <span class="pill ok">online</span>
+            </div>
+            <div class="source-row">
+              <span class="source-icon req">R</span>
+              <div>
+                <strong>Jira REQ / Epic</strong>
+                <small>requirements, acceptance</small>
+              </div>
+              <span class="pill ok">online</span>
+            </div>
+            <div class="source-row">
+              <span class="source-icon docs">C</span>
+              <div>
+                <strong>Confluence</strong>
+                <small>rules, API docs, decisions</small>
+              </div>
+              <span class="pill warn">partial</span>
+            </div>
+            <div class="source-row">
+              <span class="source-icon code">G</span>
+              <div>
+                <strong>GitLab</strong>
+                <small>modules, files, commits</small>
+              </div>
+              <span class="pill ok">online</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">QM Testing Stage</p>
+            <h2>Bug Ticket 智能分析工作台</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="copyReportBtn">复制报告</button>
+            <button class="primary-button" id="runAnalysisBtn">
+              <span class="run-dot"></span>
+              运行分析
+            </button>
+          </div>
+        </header>
+
+        <section class="hero-strip">
+          <div>
+            <span class="label">Current Goal</span>
+            <p>从 QM bug ticket 自动关联 REQ/Epic、Confluence 与 GitLab，实现归属判断、需求依据、代码定位、影响范围和工时初评。</p>
+          </div>
+          <div class="metric-card">
+            <span>Avg saved</span>
+            <strong>1.4h</strong>
+            <small>per ticket</small>
+          </div>
+          <div class="metric-card">
+            <span>Confidence</span>
+            <strong id="topConfidence">82%</strong>
+            <small>weighted</small>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="analysis-column">
+            <div class="module-card selected-ticket">
+              <div class="card-title-row">
+                <div>
+                  <p class="eyebrow">Selected Ticket</p>
+                  <h3 id="ticketTitle"></h3>
+                </div>
+                <span class="severity" id="ticketSeverity"></span>
+              </div>
+              <p class="ticket-summary" id="ticketSummary"></p>
+              <div class="meta-grid" id="ticketMeta"></div>
+            </div>
+
+            <div class="module-card">
+              <div class="card-title-row">
+                <div>
+                  <p class="eyebrow">Agent Workflow</p>
+                  <h3>分析流程</h3>
+                </div>
+                <span class="pill neutral" id="workflowState">ready</span>
+              </div>
+              <div class="workflow" id="workflow"></div>
+            </div>
+
+            <div class="module-card">
+              <div class="card-title-row">
+                <div>
+                  <p class="eyebrow">Human Review</p>
+                  <h3>人工确认节点</h3>
+                </div>
+              </div>
+              <div class="review-grid">
+                <button class="review-card active" data-review="po">
+                  <span>PO</span>
+                  <strong>确认需求归属</strong>
+                  <small>REQ/Epic, priority, next action</small>
+                </button>
+                <button class="review-card" data-review="rd">
+                  <span>RD</span>
+                  <strong>确认代码影响</strong>
+                  <small>module, change size, effort</small>
+                </button>
+                <button class="review-card" data-review="qa">
+                  <span>QA/QM</span>
+                  <strong>确认验证范围</strong>
+                  <small>steps, regression scope, env</small>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="insight-column">
+            <div class="module-card context-card">
+              <div class="card-title-row">
+                <div>
+                  <p class="eyebrow">Context Retrieval</p>
+                  <h3>多源上下文</h3>
+                </div>
+                <span class="pill ok" id="contextCount">7 hits</span>
+              </div>
+              <div class="context-tabs">
+                <button class="tab active" data-tab="req">REQ</button>
+                <button class="tab" data-tab="docs">Docs</button>
+                <button class="tab" data-tab="code">Code</button>
+              </div>
+              <div class="context-list" id="contextList"></div>
+            </div>
+
+            <div class="module-card report-card">
+              <div class="card-title-row">
+                <div>
+                  <p class="eyebrow">Generated Report</p>
+                  <h3>结构化分析报告</h3>
+                </div>
+                <span class="pill ok" id="reportStatus">usable</span>
+              </div>
+              <div class="report-body" id="reportBody"></div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast">报告已复制</div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
