@@ -1,0 +1,322 @@
+<div id="job-search-conversation-vis" class="job-search-conversation-vis">
+  <style>
+    #job-search-conversation-vis {
+      --gap: 0.85rem;
+      width: 100%;
+      color: var(--foreground);
+    }
+
+    #job-search-conversation-vis .vis-layout {
+      display: grid;
+      gap: var(--gap);
+    }
+
+    #job-search-conversation-vis .viz-controls {
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #job-search-conversation-vis .phase-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    #job-search-conversation-vis .conversation-map {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.8fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    #job-search-conversation-vis .timeline {
+      position: relative;
+      display: grid;
+      gap: 0.65rem;
+      padding-block: 0.25rem;
+    }
+
+    #job-search-conversation-vis .timeline::before {
+      content: "";
+      position: absolute;
+      inset-block: 0.75rem;
+      left: 0.7rem;
+      width: 1px;
+      background: var(--border);
+    }
+
+    #job-search-conversation-vis .node {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.4rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: start;
+      border: 0;
+      background: transparent;
+      color: var(--foreground);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    #job-search-conversation-vis .node-marker {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--background);
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+
+    #job-search-conversation-vis .node[aria-pressed="true"] .node-marker {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+
+    #job-search-conversation-vis .node-body {
+      display: grid;
+      gap: 0.2rem;
+      min-width: 0;
+      padding-block: 0.05rem 0.45rem;
+    }
+
+    #job-search-conversation-vis .node-title {
+      font-weight: 500;
+    }
+
+    #job-search-conversation-vis .node-desc {
+      color: var(--muted-foreground);
+    }
+
+    #job-search-conversation-vis .node[aria-pressed="true"] .node-desc {
+      color: var(--foreground);
+    }
+
+    #job-search-conversation-vis .decision-flow {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    #job-search-conversation-vis .flow-row {
+      display: grid;
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+      gap: 0.65rem;
+      align-items: start;
+      padding-block: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #job-search-conversation-vis .flow-row:last-child {
+      border-bottom: 0;
+    }
+
+    #job-search-conversation-vis .flow-label {
+      color: var(--muted-foreground);
+    }
+
+    #job-search-conversation-vis .flow-value {
+      color: var(--foreground);
+    }
+
+    #job-search-conversation-vis .outcome-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    #job-search-conversation-vis .outcome {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    #job-search-conversation-vis .outcome strong {
+      font-weight: 500;
+    }
+
+    #job-search-conversation-vis .outcome span {
+      color: var(--muted-foreground);
+    }
+
+    #job-search-conversation-vis .connector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted-foreground);
+    }
+
+    #job-search-conversation-vis .connector::before,
+    #job-search-conversation-vis .connector::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--border);
+    }
+
+    @media (max-width: 720px) {
+      #job-search-conversation-vis .conversation-map,
+      #job-search-conversation-vis .outcome-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #job-search-conversation-vis .viz-controls {
+        justify-content: flex-start;
+      }
+
+      #job-search-conversation-vis .flow-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+    }
+  </style>
+
+  <div class="vis-layout" aria-label="本次求职定位对话的可视化梳理">
+    <div class="viz-controls">
+      <div class="phase-buttons" role="group" aria-label="选择对话阶段">
+        <button class="btn btn-primary" type="button" data-phase="0" aria-pressed="true">目标澄清</button>
+        <button class="btn" type="button" data-phase="1" aria-pressed="false">项目收敛</button>
+        <button class="btn" type="button" data-phase="2" aria-pressed="false">PRD 与 Demo</button>
+        <button class="btn" type="button" data-phase="3" aria-pressed="false">简历策略</button>
+      </div>
+      <span class="viz-badge" id="jsc-stage-badge">阶段 1 / 4</span>
+    </div>
+
+    <div class="conversation-map">
+      <div class="timeline" id="jsc-timeline"></div>
+
+      <div class="card">
+        <div class="decision-flow" id="jsc-detail"></div>
+      </div>
+    </div>
+
+    <div class="connector">收敛后的求职主线</div>
+
+    <div class="outcome-grid">
+      <div class="card outcome">
+        <strong>一句话目标</strong>
+        <span>AI Agent 工作流 / B端工具产品经理，侧重企业流程自动化与研发效能。</span>
+      </div>
+      <div class="card outcome">
+        <strong>核心项目</strong>
+        <span>QM Bug Ticket 智能分析系统：Jira、REQ/Epic、Confluence、GitLab 多源分析。</span>
+      </div>
+      <div class="card outcome">
+        <strong>当前动作</strong>
+        <span>用 PRD、网页 demo、优化简历把“会用 AI”转成“会设计 Agent 工作流”。</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.getElementById("job-search-conversation-vis");
+      const phases = [
+        {
+          title: "从“想换工作”压缩到明确岗位",
+          nodes: [
+            ["01", "起点", "不想继续汽车行业，也认为外包岗不可持续。"],
+            ["02", "第一次收敛", "目标不是泛 AI，而是 AI Agent 工作流相关。"],
+            ["03", "岗位形态", "ToB 工具类 / 平台类产品经理。"],
+            ["04", "优先方向", "先押企业 Agent 工作流编排平台，而不是同时打所有 AI 方向。"],
+          ],
+          detail: [
+            ["真正问题", "你不是不知道要换工作，而是求职标签还不够锋利。"],
+            ["关键判断", "市场不会按“都符合”筛人，只会判断你像不像这个岗位。"],
+            ["阶段产物", "AI Agent 工作流 / B端工具 / 企业流程提效产品经理。"],
+          ],
+        },
+        {
+          title: "从个人技巧收敛成可讲项目",
+          nodes: [
+            ["05", "证据筛选", "DevOps 经历相关但细节记不清，不能作为主证据。"],
+            ["06", "主项目浮出", "Jira MCP + Claude Code 自动化 issue 分析更近、更能讲清。"],
+            ["07", "价值确认", "每天约 5 个 issue，单个节省 1-2 小时。"],
+            ["08", "产品化方向", "从个人 skill 转成团队内 bug 分析工作流。"],
+          ],
+          detail: [
+            ["真正卡点", "相关经历分散，需要组织成一个可信的产品叙事。"],
+            ["关键判断", "它不是“我会用 Claude”，而是把团队分析流程拆成 Agent workflow。"],
+            ["阶段产物", "QM Bug Ticket 智能分析系统的项目骨架。"],
+          ],
+        },
+        {
+          title: "从通用提效系统收敛到 QM Bug 场景",
+          nodes: [
+            ["09", "数据输入", "Jira Bug、REQ/Epic、Confluence、GitLab。"],
+            ["10", "当前场景", "需求实现完成后，QM 测试产生 bug ticket。"],
+            ["11", "MVP 边界", "只做 bug 分析，不做通用 Agent 平台。"],
+            ["12", "交付物", "重构 PRD，并生成 Cursor 风格网页 demo。"],
+          ],
+          detail: [
+            ["真正问题", "当前 bug 分析和未来需求迁移不能混在 MVP 里。"],
+            ["关键判断", "先验证一个高频、可量化、可复用的团队场景。"],
+            ["阶段产物", "PRD + 静态网页 demo，支撑面试讲解。"],
+          ],
+        },
+        {
+          title: "从经历混乱到简历主线",
+          nodes: [
+            ["13", "求职建议", "主线定为技术背景 + B端产品 + AI Agent 流程提效。"],
+            ["14", "简历重写", "新建 AI Agent 产品经理方向优化版简历。"],
+            ["15", "经历合并", "二选一后，选择把外包经历合并到擎朗下。"],
+            ["16", "最终版本", "弱化外包字样，保留 Agent 工作流作为核心项目。"],
+          ],
+          detail: [
+            ["真正问题", "你在规避外包风险，但不能让经历变得更不可信。"],
+            ["关键判断", "给定必须二选一，合并到擎朗是相对风险较低的坏方案。"],
+            ["阶段产物", "优化版简历：擎朗至今 + 内部研发协作提效 + Agent 项目。"],
+          ],
+        },
+      ];
+
+      const timeline = root.querySelector("#jsc-timeline");
+      const detail = root.querySelector("#jsc-detail");
+      const badge = root.querySelector("#jsc-stage-badge");
+      const buttons = Array.from(root.querySelectorAll("[data-phase]"));
+
+      function render(index) {
+        const phase = phases[index];
+        badge.textContent = `阶段 ${index + 1} / ${phases.length}`;
+        timeline.innerHTML = phase.nodes
+          .map(function (node, nodeIndex) {
+            return `<button class="node" type="button" aria-pressed="${nodeIndex === phase.nodes.length - 1 ? "true" : "false"}">
+              <span class="node-marker">${node[0]}</span>
+              <span class="node-body">
+                <span class="node-title">${node[1]}</span>
+                <span class="node-desc text-small">${node[2]}</span>
+              </span>
+            </button>`;
+          })
+          .join("");
+
+        detail.innerHTML = `<div><strong>${phase.title}</strong></div>` +
+          phase.detail
+            .map(function (row) {
+              return `<div class="flow-row">
+                <span class="flow-label text-small">${row[0]}</span>
+                <span class="flow-value">${row[1]}</span>
+              </div>`;
+            })
+            .join("");
+
+        buttons.forEach(function (button, buttonIndex) {
+          const selected = buttonIndex === index;
+          button.setAttribute("aria-pressed", selected ? "true" : "false");
+          button.classList.toggle("btn-primary", selected);
+        });
+      }
+
+      buttons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          render(Number(button.dataset.phase));
+        });
+      });
+
+      render(0);
+    })();
+  </script>
+</div>
